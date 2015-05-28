@@ -1,0 +1,16 @@
+$def with (doc, refs)
+
+<h1>$doc['title']</h1>
+
+<table>
+<tr><th>Citation <td>$doc.get('citation')
+<tr><th>Description <td>$doc.get('description')
+</table>
+
+$if refs:
+    <h2>Referenced by</h2>
+
+    <ul>
+    $for ref in refs:
+        <li><a href="show?url=$ref['url']">$ref['title']</a>
+    </ul>

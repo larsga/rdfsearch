@@ -1,0 +1,44 @@
+$def with (docs, query)
+
+<h1>Search results</h1>
+
+<form action=search method=get>
+<p>
+<input type=text name=query size=40 value='$query'>
+<input type=submit value=Search>
+</p>
+</form>
+
+<!-- SEARCH RESULTS -->
+<table>
+$for doc in docs:
+    <tr><td>
+    $if doc.get('link'):
+        <a href="$doc['link']">$doc['name']</a>
+    $else:
+        $doc['name']
+
+    <a href="show?url=$doc['url']">[*]</a>
+
+    <td>$doc.get('description', '')
+</table>
+
+$if not docs:
+    <p>No results.
+
+$if docs.is_last_page():
+    $ pages = docs.pagenum
+$else:
+    $ pages = docs.pagenum + 1
+
+$if pages > 1:
+    <p>
+    $if docs.pagenum > 1:
+        <a href="?query=$query">&lt;&lt;</a>
+    $for ix in range(1, pages + 1):
+        $if ix == docs.pagenum:
+            <b>$ix</b>
+        $else:
+            <a href="?query=$query&page=$ix">$ix</a>
+    $if docs.pagenum < pages:
+        <a href="?query=$query&page=$(docs.pagenum+1)">&gt;&gt;</a>
