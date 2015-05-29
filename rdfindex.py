@@ -31,11 +31,20 @@ def tourl(filename):
     assert filename[0] == '/'
     return 'file://' + filename
 
-def resource_is_link(sub):
-    return False
+def get_classes(uri):
+    return g.objects(uri, rdflib.URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'))
 
-def is_link(sub):
-    return False
+def get_superclasses(klass):
+    return g.objects(klass, rdflib.URIRef('http://www.w3.org/2000/01/rdf-schema#subclassOf'))
+
+def resource_is_link(uri):
+    for k in get_classes(uri):
+        for s in get_superclasses(k):
+            if str(s) == 'http://psi.garshol.priv.no/2015/rdfsearch/Resource':
+                return True
+
+def is_link(property):
+    return belongs_to_class(property, 'http://psi.garshol.priv.no/2015/rdfsearch/LinkProperty')
 
 def is_http_uri(o):
     return isinstance(o, rdflib.URIRef) and (str(o).startswith('http://') or
@@ -48,6 +57,9 @@ def add_value(obj, field, value):
     values = obj.get(field, [])
     values.append(value)
     obj[field] = values
+
+def set_value(obj, field, value):
+    obj[field] = value
 
 def find_label(uri):
     return lookup(g, o, 'http://www.w3.org/2000/01/rdf-schema#label')
@@ -75,7 +87,7 @@ def tofilename(url):
     return url.replace('%20', ' ')
 
 def belongs_to_class(uri, klass):
-    for k in g.objects(uri, rdflib.URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type')):
+    for k in get_classes(uri):
         if str(k) == klass:
             return True
 
@@ -90,7 +102,7 @@ def is_description_property(uri):
 schema = Schema(url = ID(stored = True),
                 name = TEXT(stored = True),
                 content = TEXT,
-                link = KEYWORD,
+                link = KEYWORD(stored = True),
                 description = TEXT(stored = True))
 
 if not os.path.exists(indexpath):
@@ -113,7 +125,7 @@ for s in subjects:
 
     obj = {'url' : unicode(s)}
     if resource_is_link(s):
-        set_value(obj, 'link', unicode(o))
+        set_value(obj, 'link', unicode(s))
 
     for p, o in g.predicate_objects(s):
         if is_link(p):
