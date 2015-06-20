@@ -13,6 +13,7 @@ import rdflib
 
 indexpath = 'index'
 rdffiles = ['/Users/lars.garshol/data/privat/trad-beer/references.ttl',
+            '/Users/lars.garshol/data/privat/trad-beer/recipes.ttl',
             '/Users/lars.garshol/data/privat/trad-beer/danmark/neu/metadata.ttl',
             '/Users/lars.garshol/data/privat/trad-beer/norge/neg/liste-35/metadata.ttl',
             '/Users/lars.garshol/data/privat/trad-beer/norge/neg/liste-35/herbs.ttl',
@@ -128,6 +129,9 @@ def add_dynamic_property(obj, p, o, keyword):
         writer.add_field(prop, config)
         props.add(prop)
 
+def exists(s):
+    return bool(g.predicate_objects(s))
+
 # ----- PREPARE
 
 props = set() # tells us whether we must create the property or not
@@ -135,6 +139,7 @@ schema = Schema(url = ID(stored = True),
                 name = TEXT(stored = True),
                 content = TEXT,
                 link = KEYWORD(stored = True),
+                refers_to = KEYWORD, # references to other resources go here
                 description = TEXT(stored = True))
 
 if not os.path.exists(indexpath):
@@ -166,9 +171,13 @@ for s in subjects:
         if is_http_uri(o):
             add_value(obj, 'content', find_label(o))
             add_dynamic_property(obj, p, o, True)
+            if exists(o):
+                add_value(obj, 'refers_to', unicode(o))
         elif is_file_uri(o):
             add_value(obj, 'content', retrieve_content(unicode(o)))
             add_dynamic_property(obj, p, o, True)
+            if exists(o):
+                add_value(obj, 'refers_to', unicode(o))
         elif isinstance(o, rdflib.Literal):
             add_value(obj, 'content', o.value)
             if is_name_property(p):

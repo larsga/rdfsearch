@@ -85,7 +85,7 @@ class Show:
         r = searcher.search(q, limit = 1)
         doc = list(r)[0]
 
-        qp = QueryParser('references', schema = ix.schema)
+        qp = QueryParser('refers_to', schema = ix.schema)
         q = qp.parse(url)
         refs = searcher.search(q, limit = 25)
 
