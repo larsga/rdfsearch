@@ -34,6 +34,19 @@ def extract_name(key):
     pos = key.rfind('/')
     return key[pos + 1 : ].replace('_', ' ')
 
+class DocumentSearcher:
+
+    def __init__(self, ix):
+        self._qp = QueryParser('url', schema = ix.schema)
+
+    def __getitem__(self, url):
+        q = self._qp.parse(url)
+        r = list(searcher.search(q, limit = 1))
+        if r:
+            return r[0]['name']
+
+# ----- PAGES
+
 class Index:
     def GET(self):
         nocache()
@@ -54,6 +67,7 @@ def make_query(query):
 
 mime = {
     'pdf' : 'application/pdf',
+    'txt' : 'text/plain',
 }
 
 class Download:
@@ -75,7 +89,7 @@ class Show:
         q = qp.parse(url)
         refs = searcher.search(q, limit = 25)
 
-        return render.show(doc, refs)
+        return render.show(doc, refs, DocumentSearcher(ix))
 
 render = web.template.render(os.path.join('.', 'templates/'),
                              base = 'base')

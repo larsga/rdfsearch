@@ -14,7 +14,10 @@ import rdflib
 indexpath = 'index'
 rdffiles = ['/Users/lars.garshol/data/privat/trad-beer/references.ttl',
             '/Users/lars.garshol/data/privat/trad-beer/danmark/neu/metadata.ttl',
-            '/Users/lars.garshol/data/privat/trad-beer/norge/neg/liste-35/metadata.ttl']
+            '/Users/lars.garshol/data/privat/trad-beer/norge/neg/liste-35/metadata.ttl',
+            '/Users/lars.garshol/data/privat/trad-beer/norge/neg/liste-35/herbs.ttl',
+            '/Users/lars.garshol/data/privat/trad-beer/danmark/neu/topnr.ttl',
+            '/Users/lars.garshol/data/privat/trad-beer/danmark/uff/metadata.ttl']
 
 # ----- UTILITIES
 
@@ -97,8 +100,36 @@ def is_name_property(uri):
 def is_description_property(uri):
     return belongs_to_class(uri, 'http://psi.garshol.priv.no/2015/rdfsearch/DescriptionProperty')
 
+def get_property_name(uri):
+    pos = max(uri.rfind('/'), uri.rfind('#'))
+    name = uri[pos + 1 : ]
+    if name in ('link', 'url', 'name', 'description'):
+        name += '_'
+    return name
+
+def add_dynamic_property(obj, p, o, keyword):
+    global writer
+    prop = get_property_name(str(p))
+    if keyword:
+        add_value(obj, prop, unicode(o))
+    else:
+        add_value(obj, prop, o.value)
+    if not prop in props:
+        # must add the property to the schema
+        writer.commit()
+        writer = ix.writer()
+
+        if keyword:
+            config = KEYWORD(stored = True)
+        else:
+            config = TEXT(stored = True)
+
+        writer.add_field(prop, config)
+        props.add(prop)
+
 # ----- PREPARE
 
+props = set() # tells us whether we must create the property or not
 schema = Schema(url = ID(stored = True),
                 name = TEXT(stored = True),
                 content = TEXT,
@@ -133,17 +164,18 @@ for s in subjects:
 
         if is_http_uri(o):
             add_value(obj, 'content', find_label(o))
-            # FIXME: this is for the faceting
-            # p = mkprop(p, KEYWORD)
-            # add_value(obj, p, unicode(o))
+            add_dynamic_property(obj, p, o, True)
         elif is_file_uri(o):
             add_value(obj, 'content', retrieve_content(unicode(o)))
+            add_dynamic_property(obj, p, o, True)
         elif isinstance(o, rdflib.Literal):
             add_value(obj, 'content', o.value)
             if is_name_property(p):
                 add_value(obj, 'name', o.value)
             elif is_description_property(p):
                 add_value(obj, 'description', o.value)
+            else:
+                add_dynamic_property(obj, p, o, False)
         else:
             print 'OOPS', p, o
 

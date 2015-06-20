@@ -1,10 +1,31 @@
-$def with (doc, refs)
+$def with (doc, refs, ix)
 
-<h1>$doc['title']</h1>
+$if doc.get('link'):
+    <h1><a href="$doc['link']">$doc['name']</a></h1>
+$else:
+    <h1>$doc['name']</h1>
+
+$if doc.get('description'):
+    <p>$doc['description']</p>
 
 <table>
-<tr><th>Citation <td>$doc.get('citation')
-<tr><th>Description <td>$doc.get('description')
+$for (k, v) in doc.items():
+    $if k not in ('link', 'name', 'description'):
+        $ components = v.split()
+        $ name = ix[components[0]]
+	$if not name or k == 'url':
+            <tr><th>$k <td>
+	    $if v.startswith('http://'):
+	        <a href="$v">$v</a>
+            $elif v.startswith('file://'):
+	        <a href="download?url=$v">$v</a>
+	    $else:
+	        $v
+	$else:
+	    <tr><th>$k <td>
+	    $for v in components:
+	        $ name = ix[v]
+    	        <a href="show?url=$v">$name</a><br>
 </table>
 
 $if refs:
@@ -12,5 +33,5 @@ $if refs:
 
     <ul>
     $for ref in refs:
-        <li><a href="show?url=$ref['url']">$ref['title']</a>
+        <li><a href="show?url=$ref['url']">$ref['name']</a>
     </ul>

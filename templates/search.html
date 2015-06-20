@@ -14,7 +14,10 @@ $def with (docs, query)
 $for doc in docs:
     <tr><td>
     $if doc.get('link'):
-        <a href="$doc['link']">$doc['name']</a>
+        $ link = doc['link']
+        $if link.startswith('file://'):
+            $ link = 'download?url=' + link
+        <a href="$link">$doc['name']</a>
     $else:
         $doc['name']
 
