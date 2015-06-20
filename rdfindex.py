@@ -50,11 +50,12 @@ def is_link(property):
     return belongs_to_class(property, 'http://psi.garshol.priv.no/2015/rdfsearch/LinkProperty')
 
 def is_http_uri(o):
-    return isinstance(o, rdflib.URIRef) and (str(o).startswith('http://') or
-                                             str(o).startswith('https://'))
+    return isinstance(o, rdflib.URIRef) and \
+        (unicode(o).startswith(u'http://') or
+         unicode(o).startswith(u'https://'))
 
 def is_file_uri(o):
-    return isinstance(o, rdflib.URIRef) and str(o).startswith('file://')
+    return isinstance(o, rdflib.URIRef) and unicode(o).startswith(u'file://')
 
 def add_value(obj, field, value):
     values = obj.get(field, [])
