@@ -1,4 +1,4 @@
-$def with (doc, refs, ix)
+$def with (doc, refs, ix, url)
 
 $if doc.get('link'):
     <h1><a href="$doc['link']">$doc['name']</a></h1>
@@ -35,3 +35,6 @@ $if refs:
     $for ref in refs:
         <li><a href="show?url=$ref['url']">$ref['name']</a>
     </ul>
+
+    $if not refs.is_last_page():
+        <a href="?url=$url&page=$(refs.get_next_page())">&gt;&gt;</a>

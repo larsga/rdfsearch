@@ -12,19 +12,43 @@ import rdflib
 # ----- CONFIG
 
 indexpath = 'index'
-rdffiles = ['/Users/lars.garshol/data/privat/trad-beer/references.ttl',
-            '/Users/lars.garshol/data/privat/trad-beer/recipes.ttl',
-            '/Users/lars.garshol/data/privat/trad-beer/danmark/neu/metadata.ttl',
-            '/Users/lars.garshol/data/privat/trad-beer/norge/neg/liste-35/metadata.ttl',
-            '/Users/lars.garshol/data/privat/trad-beer/norge/neg/liste-35/herbs.ttl',
-            '/Users/lars.garshol/data/privat/trad-beer/danmark/neu/topnr.ttl',
-            '/Users/lars.garshol/data/privat/trad-beer/danmark/uff/metadata.ttl']
+PREFIX = '/Users/larsga/data/privat/trad-beer/'
+OTHER = '/Users/larsga/cvs-co/fhdb/schema/'
+rdffiles = [os.path.join(PREFIX, fname) for fname in [
+    'references.ttl',
+    'recipes.ttl',
+    'danmark/neu/metadata.ttl',
+    'norge/neg/liste-35/metadata.ttl',
+    'norge/neg/liste-35/herbs.ttl',
+    'danmark/neu/topnr.ttl',
+    'danmark/uff/metadata.ttl',
+    'norge/neg/liste-35/processes.ttl',
+    'sverige/luf/metadata.ttl',
+    'tyskland/voko/metadata.ttl',
+    'finland/sls/sls-820/metadata.ttl',
+    'finland/km/metadata.ttl',
+    'pagerank.nt',
+    'wood-types.ttl',
+    'topics.ttl',
+    'kveik.ttl',
+    'sverige/eu/metadata.ttl',
+    'cultures.ttl',
+    'yeast-drying.ttl',
+    OTHER + 'malt-drying.ttl',
+    'dots.ttl',
+    'sverige/eu/sp-98/metadata.ttl',
+    'strainer-type.ttl',
+    OTHER + 'cleaning-agents.ttl',
+    OTHER + 'events.ttl',
+    'litauen/siauliai-museum/metadata.ttl',
+    'estland/erm/metadata.ttl',
+]]
 
 # ----- UTILITIES
 
 def load_into_graph(graph, base_url, filename):
     try:
-        graph.parse(location = base_url, file = open(filename), format = 'n3')
+        graph.parse(location = base_url, format = 'n3')
     except rdflib.exceptions.ParserError:
         print "Parse error in", filename
         return False
@@ -39,7 +63,7 @@ def get_classes(uri):
     return g.objects(uri, rdflib.URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'))
 
 def get_superclasses(klass):
-    return g.objects(klass, rdflib.URIRef('http://www.w3.org/2000/01/rdf-schema#subclassOf'))
+    return g.objects(klass, rdflib.URIRef('http://www.w3.org/2000/01/rdf-schema#subClassOf'))
 
 def resource_is_link(uri):
     for k in get_classes(uri):
@@ -74,22 +98,27 @@ def lookup(graph, subject, predicate):
         return o.value
 
 def retrieve_content(url):
-    if url.endswith(u'.txt'):
-        return codecs.open(tofilename(o), 'r', 'utf-8').read()
-    elif url.endswith(u'.pdf'):
-        if os.path.exists('/tmp/pdf.txt'):
-            os.unlink('/tmp/pdf.txt')
-        os.system('pdftotext %s /tmp/pdf.txt' % tofilename(o))
-        if os.path.exists('/tmp/pdf.txt'):
-            return codecs.open('/tmp/pdf.txt', 'r', 'iso-8859-1').read()
-    else:
-        print "Can't extract content from %s" % o
+    try:
+        if url.endswith(u'.txt'):
+            return codecs.open(tofilename(url), 'r', 'utf-8').read()
+        elif url.endswith(u'.pdf'):
+            if os.path.exists('/tmp/pdf.txt'):
+                os.unlink('/tmp/pdf.txt')
+            os.system('pdftotext %s /tmp/pdf.txt' % tofilename(url))
+            if os.path.exists('/tmp/pdf.txt'):
+                return codecs.open('/tmp/pdf.txt', 'r', 'iso-8859-1').read()
+        else:
+            print "Can't extract content from %s" % url
+    except IOError, e:
+        print "Can't extract content from %s: %s" % (url, e)
+    except UnicodeDecodeError, e:
+        print "Bad UTF-8 encoding in %s: %s" % (url, e)
 
 def tofilename(url):
     if url.startswith('file://'):
         url = url[7 : ]
 
-    return url.replace('%20', ' ')
+    return url.replace('%20', ' ').encode('utf-8')
 
 def belongs_to_class(uri, klass):
     for k in get_classes(uri):
@@ -163,6 +192,7 @@ for s in subjects:
     obj = {'url' : unicode(s)}
     if resource_is_link(s):
         set_value(obj, 'link', unicode(s))
+        add_value(obj, 'content', retrieve_content(unicode(s)))
 
     for p, o in g.predicate_objects(s):
         if is_link(p):

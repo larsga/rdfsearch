@@ -4,7 +4,7 @@ Runs the search interface. Run it with
   python ui.py [port number] [index directory]
 '''
 
-import os.path, sys
+import os.path, sys, codecs
 import web
 from whoosh.index import open_dir
 from whoosh.searching import Searcher
@@ -73,12 +73,21 @@ mime = {
 class Download:
     def GET(self):
         url = web.input().get('url')
-        web.header('Content-type', mime[url.split('.')[-1]])
-        return open(url[7 : ]).read()
+        extension = url.split('.')[-1]
+        charset = ''
+        if extension in ('html', 'txt'):
+            charset = '; charset=utf-8'
+            content = codecs.open(url[7 : ], 'r', 'utf-8').read()
+        else:
+            content = open(url[7 : ], 'r').read()
+
+        web.header('Content-type', mime[extension] + charset)
+        return content
 
 class Show:
     def GET(self):
         url = web.input().get('url')
+        page = int(web.input().get('page', 1))
 
         qp = QueryParser('url', schema = ix.schema)
         q = qp.parse(url)
@@ -87,9 +96,30 @@ class Show:
 
         qp = QueryParser('refers_to', schema = ix.schema)
         q = qp.parse(url)
-        refs = searcher.search(q, limit = 25)
+        refs = searcher.search_page(q, page, pagelen = PAGE_SIZE)
+        refs = Pager(page, refs)
 
-        return render.show(doc, refs, DocumentSearcher(ix))
+        return render.show(doc, refs, DocumentSearcher(ix), url)
+
+class Pager:
+
+    def __init__(self, page, results):
+        self._page = page
+        self._results = results
+
+        if results.is_last_page():
+            self._pages = page
+        else:
+            self._pages = page + 1
+
+    def __getitem__(self, no):
+        return self._results[no]
+
+    def is_last_page(self):
+        return self._page == self._pages
+
+    def get_next_page(self):
+        return self._page + 1
 
 render = web.template.render(os.path.join('.', 'templates/'),
                              base = 'base')
